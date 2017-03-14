@@ -17,6 +17,7 @@ import paramiko
 
 SSH_PORT = 65531
 DEFAULT_PORT = 12001
+IP="202.38.82.66"
 
 g_verbose = True
 
@@ -96,6 +97,7 @@ def get_host_port(spec, default_port):
 
 def parse_options():
     global g_verbose
+    global g_no_change_interval
 
     parser = OptionParser(usage='usage: %prog [options] <ssh-server>[:<server-port>]',
                           version='%prog 1.0', description=HELP)
@@ -105,8 +107,11 @@ def parse_options():
                       default=DEFAULT_PORT,
                       help='local port to forward (default: %d)' % DEFAULT_PORT)
     parser.add_option('-i', '--interval', action='store', type='int', dest='interval',
-                      default=30,
-                      help='default refresh interval (default: %d)' % DEFAULT_PORT)
+                      default=60,
+                      help='default refresh interval (default: %d)' % 60)
+    parser.add_option('-I', '--Interval', action='store', type='int', dest='no_change_interval',
+                    default=300,
+                    help='default refresh interval when no status change happening (default: %d)' % 300)
     parser.add_option('-u', '--user', action='store', type='string', dest='user',
                       default=getpass.getuser(),
                       help='username for SSH authentication (default: %s)' % getpass.getuser())
@@ -117,15 +122,18 @@ def parse_options():
                       help='don\'t look for or use a private key file')
     parser.add_option('-P', '--password', action='store_true', dest='readpass', default=False,
                       help='read password (for key or password auth) from stdin')
-    parser.add_option('-r', '--remote', action='store', type='string', dest='remote', default='202.38.82.66:12001', metavar='host:port',
+    parser.add_option('-r', '--remote', action='store', type='string', dest='remote', default='{}:12001'.format(IP), metavar='host:port',
                       help='remote host and port to forward to')
-    args = ["202.38.82.66:65531"]
+
+    options, args = parser.parse_args()
+    args = ["{}:65531".format(IP)]
     if len(args) != 1:
         parser.error('Incorrect number of arguments.')
     if options.remote is None:
         parser.error('Remote address required (-r).')
 
     g_verbose = options.verbose
+    g_no_change_interval = options.no_change_interval
     server_host, server_port = get_host_port(args[0], SSH_PORT)
     remote_host, remote_port = get_host_port(options.remote, SSH_PORT)
     return options, (server_host, server_port), (remote_host, remote_port)
@@ -140,16 +148,47 @@ def formatRec(dic):
     subtitle = 'Start Time: {0} {1}'.format(dic['start'][0], dic['start'][3])
     return message, title, subtitle
 
-def getInfo(usr):
+def formatComplete(info):
+    return "Job has finished!", '{0}.bio'.format(info[0]), 'Start Time: {0} {1}'.format(info[1][0], info[1][3])
+
+def displayRec(dic, sound = None, formatRec=formatRec):
+    message, title, sub = formatRec(dic)
+    if sound != None:
+        Notifier.notify(message, group=title, title=title, subtitle=sub, sound=sound)
+        time.sleep(2)
+    else:
+        Notifier.notify(message, group=title, title=title, subtitle=sub)
+
+
+def getInfo(infoDispalyTime, usr):
     clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     clientSocket.connect(('localhost', DEFAULT_PORT))
     clientSocket.send(usr)
     info = clientSocket.recv(1024)
     clientSocket.close()
     infoList = eval(info)
+    hold = infoDispalyTime.keys()
     for rec in infoList:
-        message, title, sub = formatRec(rec)
-        Notifier.notify(message, group=title, title=title, subtitle=sub, closeLabel="Close")
+        name = rec['name']
+        status = rec['status']
+        if infoDispalyTime.has_key(name):
+            hold.remove(name)
+            displayed = infoDispalyTime[name]
+            if status == displayed[1]:
+                if time.time() - displayed[0] > g_no_change_interval:
+                    displayRec(rec)
+            else:
+                displayRec(rec, sound="default")
+                displayed[1] = status
+                displayed[0] = time.time()
+        else:
+            infoDispalyTime[name] = [time.time(), status, rec['start']]
+            displayRec(rec, sound = "default")
+
+    for rest in hold:
+        info = infoDispalyTime[rest]
+        displayRec((rest, info[2]), sound = "Glass", formatRec=formatComplete)
+        infoDispalyTime.pop(rest, None)
 
 
 def main():
@@ -176,8 +215,9 @@ def main():
     # forward_tunnel(options.port, remote[0], remote[1], client.get_transport())
     threading.Thread(target=forward_tunnel, args=(options.port, remote[0], remote[1], client.get_transport())).start()
 
+    infoDispalyTime = {}
     while True:
-        getInfo(options.user)
+        getInfo(infoDispalyTime, options.user)
         time.sleep(options.interval)
 
 if __name__ == '__main__':
