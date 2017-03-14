@@ -2,6 +2,9 @@ import getpass
 import os
 import socket
 import select
+import threading
+import time
+import pync
 try:
     import SocketServer
 except ImportError:
@@ -126,6 +129,17 @@ def parse_options():
     return options, (server_host, server_port), (remote_host, remote_port)
 
 
+def getInfo(usr):
+    clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    clientSocket.connect(('localhost', DEFAULT_PORT))
+    clientSocket.send(usr)
+    info = clientSocket.recv(1024)
+    clientSocket.close()
+    infoList = eval(info)
+    for rec in infoList:
+
+
+
 def main():
     options, server, remote = parse_options()
 
@@ -147,12 +161,12 @@ def main():
 
     verbose('Now forwarding port %d to %s:%d ...' % (options.port, remote[0], remote[1]))
 
-    try:
-        forward_tunnel(options.port, remote[0], remote[1], client.get_transport())
-    except KeyboardInterrupt:
-        print('C-c: Port forwarding stopped.')
-        sys.exit(0)
+    # forward_tunnel(options.port, remote[0], remote[1], client.get_transport())
+    threading.Thread(target=forward_tunnel, args=(options.port, remote[0], remote[1], client.get_transport())).start()
 
+    while True:
+        getInfo(options.user)
+        time.sleep(60)
 
 if __name__ == '__main__':
     main()
