@@ -12,7 +12,7 @@ def checkPBS():
     records = defaultdict(list)
     for l in stdout.split("\n"):
         tokens = l.split()
-        if tokens != [] and tokens[0].isdigit() and (tokens[2] == "Running" or tokens[2] == "Idle"):
+        if tokens != [] and tokens[0].isdigit() and (tokens[2] == "Running" or tokens[2] == "Idle" or tokens[2]=="BatchHold"):
             dic = dict()
             dic["name"] = tokens[0]
             dic["status"] = tokens[2]

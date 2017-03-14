@@ -141,9 +141,12 @@ def parse_options():
 def formatRec(dic):
     status = dic['status']
     if status == "Running":
-        message = 'Job is {0}. Remaining: {1}'.format(dic['status'], dic['time'])
+        message = 'Job is Running. Remaining: {1}'.format(dic['time'])
     else:
-        message = 'Job is Queued.'
+        if status == "Idle":
+            message = 'Job is Queued.'
+        else:
+            message = "Job is BatchHold"
     title = '{0}.bio'.format(dic['name'])
     subtitle = 'Start Time: {0} {1}'.format(dic['start'][0], dic['start'][3])
     return message, title, subtitle
