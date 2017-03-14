@@ -4,7 +4,7 @@ import socket
 import select
 import threading
 import time
-import pync
+from pync import Notifier
 try:
     import SocketServer
 except ImportError:
@@ -104,6 +104,9 @@ def parse_options():
     parser.add_option('-p', '--local-port', action='store', type='int', dest='port',
                       default=DEFAULT_PORT,
                       help='local port to forward (default: %d)' % DEFAULT_PORT)
+    parser.add_option('-i', '--interval', action='store', type='int', dest='interval',
+                      default=30,
+                      help='default refresh interval (default: %d)' % DEFAULT_PORT)
     parser.add_option('-u', '--user', action='store', type='string', dest='user',
                       default=getpass.getuser(),
                       help='username for SSH authentication (default: %s)' % getpass.getuser())
@@ -116,7 +119,6 @@ def parse_options():
                       help='read password (for key or password auth) from stdin')
     parser.add_option('-r', '--remote', action='store', type='string', dest='remote', default='202.38.82.66:12001', metavar='host:port',
                       help='remote host and port to forward to')
-    options, args = parser.parse_args()
     args = ["202.38.82.66:65531"]
     if len(args) != 1:
         parser.error('Incorrect number of arguments.')
@@ -128,6 +130,15 @@ def parse_options():
     remote_host, remote_port = get_host_port(options.remote, SSH_PORT)
     return options, (server_host, server_port), (remote_host, remote_port)
 
+def formatRec(dic):
+    status = dic['status']
+    if status == "Running":
+        message = 'Job is {0}. Remaining: {1}'.format(dic['status'], dic['time'])
+    else:
+        message = 'Job is Queued.'
+    title = '{0}.bio'.format(dic['name'])
+    subtitle = 'Start Time: {0} {1}'.format(dic['start'][0], dic['start'][3])
+    return message, title, subtitle
 
 def getInfo(usr):
     clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -137,7 +148,8 @@ def getInfo(usr):
     clientSocket.close()
     infoList = eval(info)
     for rec in infoList:
-
+        message, title, sub = formatRec(rec)
+        Notifier.notify(message, group=title, title=title, subtitle=sub, closeLabel="Close")
 
 
 def main():
@@ -166,7 +178,7 @@ def main():
 
     while True:
         getInfo(options.user)
-        time.sleep(60)
+        time.sleep(options.interval)
 
 if __name__ == '__main__':
     main()
