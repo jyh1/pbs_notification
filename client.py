@@ -141,7 +141,7 @@ def parse_options():
 def formatRec(dic):
     status = dic['status']
     if status == "Running":
-        message = 'Job is Running. Remaining: {1}'.format(dic['time'])
+        message = 'Job is Running. Remaining: {0}'.format(dic['time'])
     else:
         if status == "Idle":
             message = 'Job is Queued.'
@@ -164,12 +164,19 @@ def displayRec(dic, sound = None, formatRec=formatRec):
 
 
 def getInfo(infoDispalyTime, usr):
-    clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    clientSocket.connect(('localhost', DEFAULT_PORT))
-    clientSocket.send(usr)
-    info = clientSocket.recv(1024)
-    clientSocket.close()
-    infoList = eval(info)
+    try:
+        clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        clientSocket.connect(('localhost', DEFAULT_PORT))
+        clientSocket.send(usr)
+        info = clientSocket.recv(1024)
+        clientSocket.close()
+    except:
+        return
+    try:
+        infoList = eval(info)
+    except:
+        Notifier.notify("Server Down!", sound="default")
+        quit()
     hold = infoDispalyTime.keys()
     for rec in infoList:
         name = rec['name']
