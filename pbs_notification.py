@@ -91,17 +91,17 @@ def checkPBS(ssh):
 
 
 def formatRunning(dic):
-    subtitle = "{0} begun @ {1}".format(dic['job_id'], dic['start'])
-    message = "Running. Remaining: {0}. ".format(dic['remaining'])
+    subtitle = "Running"
+    message = "Remaining: {0}. ".format(dic['remaining'])
     if dic['cputime'] != None:
-        message = "Running. Time: {0}. CPU: {1:.2f}. Remaining: {2}".format(dic['walltime'], dic['processors'], dic['remaining'])
+        message = "Used: {0}. CPU: {1:.1f}. Remaining: {2}".format(dic['walltime'], dic['processors'], dic['remaining'])
     return subtitle, message
 
 # def formatQueue(dic, status):
 #     return dic['job_id'], status
 
 def displayUpdate(dic, s = True):
-    title = dic['job_name']
+    title = "{0} {1}".format(dic['job_name'], dic['job_id'])
     group = dic['job_id']
     state = dic['job_state']
     if state == "R":
@@ -115,7 +115,6 @@ def displayUpdate(dic, s = True):
             message = "Queued."
         if state == "F":
             message = "Terminated."
-    # subtitle, message = formatQueue(dic, mes)
     if s:
         Notifier.notify(message, group=group, title=title, subtitle=subtitle, sound="Glass")
         time.sleep(2)
