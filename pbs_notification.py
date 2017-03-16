@@ -158,11 +158,15 @@ def displayInfo(pbsdb, jobs):
 pbsdb = {}
 while True:
     try:
-        jobs = checkPBS(ssh)
+        try:
+            jobs = checkPBS(ssh)
+        except KeyboardInterrupt:
+            raise
+        except:
+            Notifier.notify("Cannot connect to server. Please try again.")
+            quit()
+        displayInfo(pbsdb, jobs)
+        time.sleep(options.interval)
     except KeyboardInterrupt:
+        print "Keyboard interupted. Quitting."
         quit()
-    except:
-        Notifier.notify("Cannot connect to server. Please try again.")
-        quit()
-    displayInfo(pbsdb, jobs)
-    time.sleep(options.interval)
