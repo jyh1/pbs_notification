@@ -1,5 +1,7 @@
 # Copyright (c) 2017 Yonghao Jin
 # All Rights Reserved
+
+# Depending on pramiko, pync
 import paramiko
 from optparse import OptionParser
 import getpass
@@ -38,6 +40,8 @@ if len(args) != 1:
 g_interval = options.interval
 g_no_change = options.no_change_interval
 
+print "Display pbs job status in notification center. Written by Y. Jin."
+
 ssh=paramiko.SSHClient()
 ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
@@ -51,6 +55,7 @@ except:
     print "Unable to connect to the server!"
     quit()
 
+print "Connected to {0}:{1}.".format(options.server, options.port)
 
 def checkPBS(ssh):
     def toseconds(s):
