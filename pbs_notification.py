@@ -1,7 +1,8 @@
 # Copyright (c) 2017 Yonghao Jin
 # All Rights Reserved
 
-# Depending on pramiko, pync
+# Depending on paramiko, pync
+
 import paramiko
 from optparse import OptionParser
 import getpass
@@ -96,10 +97,12 @@ def checkPBS(ssh):
 
 
 def formatRunning(dic):
-    subtitle = "Running"
-    message = "Remaining: {0}. ".format(dic['remaining'])
     if dic['cputime'] != None:
-        message = "Used: {0}. CPU: {1:.1f}. Remaining: {2}".format(dic['walltime'], dic['processors'], dic['remaining'])
+        subtitle = "Running. {0} remained.".format(dic['remaining'])
+        message = "Wall Time: {0}. CPU: {1:.1f}.".format(dic['walltime'], dic['processors'])
+    else:
+        subtitle = "Running"
+        message = "Remaining: {0}.".format(dic['remaining'])
     return subtitle, message
 
 # def formatQueue(dic, status):
@@ -112,14 +115,14 @@ def displayUpdate(dic, s = True):
     if state == "R":
         subtitle, message = formatRunning(dic)
     else:
-        subtitle = dic['job_id']
-        message = state
+        message = ""
+        subtitle = state
         if state == "H":
-            message = "BatchHeld."
+            subtitle = "BatchHeld"
         if state == "Q":
-            message = "Queued."
+            subtitle = "Queued"
         if state == "F":
-            message = "Terminated."
+            subtitle = "Terminated"
     if s:
         Notifier.notify(message, group=group, title=title, subtitle=subtitle, sound="Glass")
         time.sleep(2)
